@@ -13,3 +13,30 @@
 .bodywrapper{
     text-align: center;
 }
+.bodywrapper {
+    width: 80%;
+    margin: 0 auto;
+}
+
+.titulo {
+    text-align: center;
+}
+
+.data-box {
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 20px;
+}
+
+.record {
+    border-bottom: 1px solid #ccc;
+    padding: 10px 0;
+}
+
+.record:last-child {
+    border-bottom: none;
+}
+
+form {
+    text-align: center;
+}

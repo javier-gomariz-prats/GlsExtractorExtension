@@ -5,24 +5,52 @@ const puppeteer = require('puppeteer');
 const app = express();
 const port = 3000;
 
-// Serve static files from the "public" directory
+app.set('view engine', 'ejs');
+app.set('views', __dirname + '/views');
+
 app.use(express.static('public'));
 app.use(bodyParser.urlencoded({ extended: true }));
+
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/public/index.html');
+});
+
+app.get('/events', (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    // Use an interval to send updates
+    const intervalId = setInterval(() => {
+        res.write('data: heartbeat\n\n');
+    }, 30000);
+
+    req.on('close', () => {
+        clearInterval(intervalId);
+    });
+});
 
 app.post('/login', async (req, res) => {
     const { name, password } = req.body;
     console.log('Received form data:', name, password);
 
     try {
-        await automateGLSLogin(name, password);
-        res.send('Login and data extraction successful.');
+        // Start the data extraction process
+        automateGLSLogin(name, password, res);
+
+        // Redirect to the result page
+        res.redirect('/result');
     } catch (error) {
         console.error('Error:', error);
         res.status(500).send('An error occurred during the login process.');
     }
 });
 
-async function automateGLSLogin(username, password) {
+app.get('/result', (req, res) => {
+    res.render('result', { data: [] });
+});
+
+async function automateGLSLogin(username, password, res) {
     const browser = await puppeteer.launch({
         headless: false,
         defaultViewport: null
@@ -31,47 +59,35 @@ async function automateGLSLogin(username, password) {
 
     try {
         console.log('Navigating to the login page...');
-        // Navigate to the login page
         await page.goto('https://atlas.gls-spain.es/Account/Login?ReturnUrl=%2F&Error=Sesi%C3%B3n%20expirada');
 
         console.log('Filling the login form...');
-        // Fill in the login form
         await page.type('#username', username);
         await page.type('input[name="password"]', password);
 
         console.log('Submitting the login form...');
-        // Wait for navigation after login
         await Promise.all([
             page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
-            page.click('.btn.btn-primary') // Click the login button
+            page.click('.btn.btn-primary')
         ]);
 
         console.log('Successfully logged in.');
-
-        // Navigate to the desired page after successful login
         await page.goto('https://atlas.gls-spain.es/customer/index');
 
-        // Wait until the body tag is present, indicating that the page has fully loaded
         await page.waitForSelector('body');
-
-        // Wait for the spinner overlay to disappear
         await waitForSpinnerToDisappear(page);
 
-        // Select 1000 records per page
         await selectRecordsPerPage(page, 1000);
 
         await page.waitForSelector('a[href="#tab_Web"]', { timeout: 60000 });
-
-        // Click on the desired link
         await page.evaluate(() => {
             document.querySelector('a[href="#tab_Web"]').click();
         });
 
-        // Wait for the spinner overlay to disappear
         await waitForSpinnerToDisappear(page);
 
-        // Process each login entry in the table
-        await processLogins(page);
+        const data = await processLogins(page, res);
+        return data;
 
     } catch (error) {
         console.error('Error:', error);
@@ -88,50 +104,52 @@ async function selectRecordsPerPage(page, value) {
             select.value = value;
             select.dispatchEvent(new Event('change', { bubbles: true }));
         }, value);
-        // Wait for the page to reload after changing the page size
         await waitForSpinnerToDisappear(page);
     } catch (error) {
         console.error('Error selecting records per page:', error);
     }
 }
 
-async function processLogins(page) {
+async function processLogins(page, res) {
     try {
-        // Fetch the total number of records
         const totalRecords = await page.evaluate(() => {
             const totalElement = document.querySelector('span[data-bind="text: my.vm.recordsTotal"]');
             return totalElement ? parseInt(totalElement.textContent, 10) : 0;
         });
 
         console.log(`Total records: ${totalRecords}`);
+        const extractedData = [];
 
         for (let rowIndex = 0; rowIndex < totalRecords; rowIndex++) {
             try {
-                // Re-fetch the rows to get the most recent references
                 let rows = await page.$$('#table-customer-simple tbody tr');
 
-                // If the current row is not loaded, scroll to load more rows
                 while (rowIndex >= rows.length) {
                     await page.evaluate(() => {
                         window.scrollBy(0, window.innerHeight);
                     });
-                    await delay(2000); // Wait a bit for new rows to load
-                    rows = await page.$$('#table-customer-simple tbody tr'); // Re-fetch rows after scrolling
+                    await delay(2000);
+                    rows = await page.$$('#table-customer-simple tbody tr');
                 }
 
-                // Ensure the row exists before interacting with it
                 if (rows[rowIndex]) {
-                    await interactWithRow(page, rowIndex);
+                    const data = await interactWithRow(page, rowIndex);
+                    console.log(`Extracted data from row ${rowIndex}:`, data);
+                    extractedData.push(data);
+
+                    // Send data to client
+                    res.write(`data: ${JSON.stringify(data)}\n\n`);
                 } else {
                     console.error(`Row ${rowIndex} does not exist anymore.`);
                     break;
                 }
             } catch (error) {
                 console.error(`Error processing row ${rowIndex}:`, error);
-                // Retry the current row if an error occurs
-                await delay(1000); // Wait for a second before retrying
+                await delay(1000);
             }
         }
+        res.write('data: [END]\n\n'); // Signal end of data
+        return extractedData;
     } catch (error) {
         console.error('Error:', error);
     }
@@ -142,36 +160,23 @@ async function interactWithRow(page, rowIndex) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
             console.log(rowIndex);
-            // Wait for the row to be present
             await page.waitForSelector(`tr[data-toggle="${rowIndex}"]`, { timeout: 60000 });
-            
-            // Click on the row using its data-toggle attribute
             await clickRowByDataToggle(page, rowIndex);
-
-            // Wait for the spinner to disappear after clicking the row
             await waitForSpinnerToDisappear(page);
-
-            // Extract the information from the modal or details section
-            const data = await extractData(page);
-
+            const data = await extractData(page, rowIndex);
             console.log(`Row ${rowIndex} data:`, data);
-
-            // Close the modal or details section if necessary
             await page.evaluate(() => {
                 const closeButton = Array.from(document.querySelectorAll('button')).find(button => button.textContent.trim() === '×');
                 if (closeButton) closeButton.click();
             });
-
-            // Wait for the spinner to disappear after closing the modal
             await waitForSpinnerToDisappear(page);
-
-            return; // Exit the function if successful
+            return data;
         } catch (error) {
             if (attempt === maxRetries) {
-                throw error; // Rethrow the error if max retries are reached
+                throw error;
             }
             console.warn(`Retrying interaction with row due to error: ${error.message}`);
-            await delay(1000); // Wait for a second before retrying
+            await delay(1000);
         }
     }
 }
@@ -192,8 +197,16 @@ async function clickRowByDataToggle(page, dataToggleValue) {
     }
 }
 
-async function extractData(page) {
+async function extractData(page, rowIndex) {
     try {
+        const rowSelector = `tr[data-toggle="${rowIndex}"]`;
+        await page.waitForSelector(rowSelector, { timeout: 60000 });
+
+        const clientCode = await page.evaluate((rowSelector) => {
+            const row = document.querySelector(rowSelector);
+            return row.querySelector('td:nth-child(2) span').textContent.trim();
+        }, rowSelector);
+
         await waitForSpinnerToDisappear(page);
         await page.evaluate(() => {
             setTimeout(() => {
@@ -206,18 +219,11 @@ async function extractData(page) {
             });
         });
 
-        // Wait for the input fields to appear on the page
         await page.waitForSelector('input[data-bind^="value: my.vmWeb().newLogin().uid"][readonly]', { timeout: 60000 });
-        await page.waitForSelector('input[data-bind="value: my.vmWeb().newLogin().codigoClienteRemitente"][readonly]', { timeout: 60000 });
 
-        // Extract the values from the input fields
-        const data = await page.evaluate(() => {
+        const uid = await page.evaluate(() => {
             const uidInput = document.querySelector('input[data-bind^="value: my.vmWeb().newLogin().uid"][readonly]');
-            const codigoClienteRemitenteInput = document.querySelector('input[data-bind="value: my.vmWeb().newLogin().codigoClienteRemitente"][readonly]');
-            return {
-                uid: uidInput ? uidInput.value : null,
-                codigoClienteRemitente: codigoClienteRemitenteInput ? codigoClienteRemitenteInput.value : null
-            };
+            return uidInput ? uidInput.value : null;
         });
 
         await waitForSpinnerToDisappear(page);
@@ -232,8 +238,8 @@ async function extractData(page) {
             });
         });
         await waitForSpinnerToDisappear(page);
-        
-        return data;
+
+        return { clientCode, uid };
 
     } catch (error) {
         console.error('Error extracting data:', error);
