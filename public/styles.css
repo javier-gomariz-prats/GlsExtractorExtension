@@ -1,0 +1,15 @@
+
+@font-face {
+    font-family: Poppins;
+    src: url('https://fonts.googleapis.com/css?family=Poppins');
+}
+.titulo{
+    font-family: Poppins, Arial, sans-serif;
+    color: blueviolet;
+    font-size: 40px;
+    margin-top: 60px;
+}
+
+.bodywrapper{
+    text-align: center;
+}
