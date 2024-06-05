@@ -10,6 +10,7 @@
     <div class="data-box" id="data-box">
         <!-- Data will be dynamically added here -->
     </div>
+    <button id="copyButton">Copy to Clipboard</button>
     <form id="userinfo" method="POST" action="/login">
         <label for="name">NOMBRE USUARIO:</label>
         <input type="text" id="name" name="name" required minlength="1" size="30" />
@@ -23,27 +24,51 @@
 </div>
 <script>
     const eventSource = new EventSource('/events');
+    const dataBox = document.getElementById('data-box');
+ 
     eventSource.onmessage = function(event) {
-        if (event.data === '[END]') {
-            eventSource.close();
-            return;
+        try {
+            const data = JSON.parse(event.data);
+            if (data.type === "heartbeat") {
+                console.log('Heartbeat received');
+            } else if (data.type === "data") {
+                console.log('Received JSON data:', data.content);
+                // Use HTML non-breaking spaces to ensure the spaces are displayed
+                const formattedData = `${data.content.clientCode}&nbsp;&nbsp;&nbsp;&nbsp;${data.content.uid}`;
+                const entry = document.createElement('div');
+                entry.innerHTML = formattedData; // Use innerHTML to render non-breaking spaces
+                dataBox.appendChild(entry);
+            } else if (data.type === "END") {
+                console.log('No more data to receive.');
+                eventSource.close(); // Close the event source if no more data
+            }
+        } catch (error) {
+            console.error('Failed to parse JSON data:', event.data, error);
         }
-
-        const data = JSON.parse(event.data);
-        const dataBox = document.getElementById('data-box');
-        const recordDiv = document.createElement('div');
-        recordDiv.classList.add('record');
-
-        const clientCodeP = document.createElement('p');
-        clientCodeP.textContent = `Client Code: ${data.clientCode}`;
-        recordDiv.appendChild(clientCodeP);
-
-        const uidP = document.createElement('p');
-        uidP.textContent = `UID: ${data.uid}`;
-        recordDiv.appendChild(uidP);
-
-        dataBox.appendChild(recordDiv);
     };
-</script>
+ </script>
+ <script>
+    document.getElementById('copyButton').addEventListener('click', function() {
+        const dataBox = document.getElementById('data-box');
+        const range = document.createRange();
+        range.selectNode(dataBox);
+        window.getSelection().addRange(range);
+    
+        try {
+            // Execute the copy command
+            const successful = document.execCommand('copy');
+            const msg = successful ? 'successful' : 'unsuccessful';
+            console.log('Copy command was ' + msg);
+            alert('Copied!');
+        } catch (err) {
+            console.log('Oops, unable to copy');
+        }
+        // Remove the selections - clears the blue highlight
+        window.getSelection().removeAllRanges();
+    });
+    </script>
+    
+ 
+ 
 </body>
 </html>

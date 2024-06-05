@@ -40,3 +40,11 @@
 form {
     text-align: center;
 }
+.data-box {
+    max-height: 300px; /* Adjust height as needed to fit 10 entries */
+    overflow-y: auto; /* Enables vertical scrolling */
+    margin: 20px 0; /* Adds some margin around the box */
+    padding: 10px; /* Adds padding inside the box */
+    border: 1px solid #ccc; /* Adds a border around the box */
+    background-color: #f9f9f9; /* Light grey background for visibility */
+}

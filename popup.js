@@ -12,23 +12,33 @@ app.use(express.static('public'));
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/public/index.html');
+    res.sendFile(__dirname + '/public/popup.html');
 });
+
+// Global variable to hold client connections
+let clients = [];
 
 app.get('/events', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    // Use an interval to send updates
+    // Send a heartbeat every 30 seconds to keep the connection alive
     const intervalId = setInterval(() => {
-        res.write('data: heartbeat\n\n');
+        res.write('data: {"type": "heartbeat"}\n\n');
     }, 30000);
 
+    // Add this response to our list of clients
+    clients.push(res);
+
     req.on('close', () => {
+        clients = clients.filter(client => client !== res);
         clearInterval(intervalId);
+        res.end();
     });
 });
+
+
 
 app.post('/login', async (req, res) => {
     const { name, password } = req.body;
@@ -59,7 +69,7 @@ async function automateGLSLogin(username, password, res) {
 
     try {
         console.log('Navigating to the login page...');
-        await page.goto('https://atlas.gls-spain.es/Account/Login?ReturnUrl=%2F&Error=Sesi%C3%B3n%20expirada');
+        await page.goto('https://atlas.gls-spain.es/Account/Login?ReturnUrl=%2F&Error=Sesi%C3%B3n%20expirada', { waitUntil: 'networkidle2' });
 
         console.log('Filling the login form...');
         await page.type('#username', username);
@@ -69,17 +79,23 @@ async function automateGLSLogin(username, password, res) {
         await Promise.all([
             page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
             page.click('.btn.btn-primary')
-        ]);
+        ], { timeout: 60000 });
 
         console.log('Successfully logged in.');
-        await page.goto('https://atlas.gls-spain.es/customer/index');
+        await page.goto('https://atlas.gls-spain.es/customer/index', { waitUntil: 'networkidle2' });
 
         await page.waitForSelector('body');
         await waitForSpinnerToDisappear(page);
 
-        await selectRecordsPerPage(page, 1000);
+        const recordsPerPageSuccess = await selectRecordsPerPage(page, 1000);
+        if (!recordsPerPageSuccess) {
+            throw new Error('Failed to set records per page.');
+        }
 
-        await page.waitForSelector('a[href="#tab_Web"]', { timeout: 60000 });
+        const tabWebSuccess = await page.waitForSelector('a[href="#tab_Web"]', { timeout: 60000 });
+        if (!tabWebSuccess) {
+            throw new Error('Failed to find the tab Web element.');
+        }
         await page.evaluate(() => {
             document.querySelector('a[href="#tab_Web"]').click();
         });
@@ -99,14 +115,20 @@ async function automateGLSLogin(username, password, res) {
 async function selectRecordsPerPage(page, value) {
     try {
         console.log(`Setting records per page to ${value}...`);
+        await page.waitForSelector('#optionPaginator', { timeout: 10000 });
         await page.evaluate((value) => {
             const select = document.querySelector('#optionPaginator');
+            if (!select) {
+                throw new Error('#optionPaginator not found');
+            }
             select.value = value;
             select.dispatchEvent(new Event('change', { bubbles: true }));
         }, value);
         await waitForSpinnerToDisappear(page);
+        return true;
     } catch (error) {
         console.error('Error selecting records per page:', error);
+        return false;
     }
 }
 
@@ -121,34 +143,27 @@ async function processLogins(page, res) {
         const extractedData = [];
 
         for (let rowIndex = 0; rowIndex < totalRecords; rowIndex++) {
-            try {
-                let rows = await page.$$('#table-customer-simple tbody tr');
+            let rows = await page.$$('#table-customer-simple tbody tr');
 
-                while (rowIndex >= rows.length) {
-                    await page.evaluate(() => {
-                        window.scrollBy(0, window.innerHeight);
-                    });
-                    await delay(2000);
-                    rows = await page.$$('#table-customer-simple tbody tr');
-                }
+            while (rowIndex >= rows.length) {
+                await page.evaluate(() => window.scrollBy(0, window.innerHeight));
+                await delay(2000);
+                rows = await page.$$('#table-customer-simple tbody tr');
+            }
 
-                if (rows[rowIndex]) {
-                    const data = await interactWithRow(page, rowIndex);
-                    console.log(`Extracted data from row ${rowIndex}:`, data);
-                    extractedData.push(data);
+            if (rows[rowIndex]) {
+                const data = await interactWithRow(page, rowIndex);
+                console.log(`Extracted data from row ${rowIndex}:`, data);
+                extractedData.push(data);
 
-                    // Send data to client
-                    res.write(`data: ${JSON.stringify(data)}\n\n`);
-                } else {
-                    console.error(`Row ${rowIndex} does not exist anymore.`);
-                    break;
-                }
-            } catch (error) {
-                console.error(`Error processing row ${rowIndex}:`, error);
-                await delay(1000);
+                // Send data to all connected clients
+                clients.forEach(clientRes => clientRes.write(`data: ${JSON.stringify({ type: 'data', content: data })}\n\n`));
+            } else {
+                console.error(`Row ${rowIndex} does not exist anymore.`);
+                break;
             }
         }
-        res.write('data: [END]\n\n'); // Signal end of data
+        clients.forEach(clientRes => clientRes.write('data: {"type": "END"}\n\n'));
         return extractedData;
     } catch (error) {
         console.error('Error:', error);
