@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="/styles.css">
+    <title>GLS EXTRACTOR by SendingBay</title>
+</head>
+<body>
+<div class="bodywrapper">
+    <h1 class="titulo">Extractor de datos de GLS</h1>
+    <div class="data-box" id="data-box">
+        <!-- Data will be dynamically added here -->
+    </div>
+    <form id="userinfo" method="POST" action="/login">
+        <label for="name">NOMBRE USUARIO:</label>
+        <input type="text" id="name" name="name" required minlength="1" size="30" />
+        <br>
+        <label for="password">CONTRASEÑA:</label>
+        <input type="password" id="password" name="password" required minlength="1" size="30" />
+        <br>
+        <button type="submit">Iniciar</button>
+    </form>
+    <br>
+</div>
+<script>
+    const eventSource = new EventSource('/events');
+    eventSource.onmessage = function(event) {
+        if (event.data === '[END]') {
+            eventSource.close();
+            return;
+        }
+
+        const data = JSON.parse(event.data);
+        const dataBox = document.getElementById('data-box');
+        const recordDiv = document.createElement('div');
+        recordDiv.classList.add('record');
+
+        const clientCodeP = document.createElement('p');
+        clientCodeP.textContent = `Client Code: ${data.clientCode}`;
+        recordDiv.appendChild(clientCodeP);
+
+        const uidP = document.createElement('p');
+        uidP.textContent = `UID: ${data.uid}`;
+        recordDiv.appendChild(uidP);
+
+        dataBox.appendChild(recordDiv);
+    };
+</script>
+</body>
+</html>
