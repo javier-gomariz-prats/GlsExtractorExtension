@@ -10,14 +10,14 @@
         <div class="data-box" id="data-box">
             <!-- Data will be dynamically added here -->
         </div>
-        <button id="copyButton">Copy to Clipboard</button>
+        <button id="copyButton">📋</button>
         <br>
     </div>
 
     <!-- Display current page input -->
     <div>
         <label for="page">Current Page:</label>
-        <input type="text" id="pageInput" class="paginate_input" value="1" readonly />
+        <input type="text" id="pageInput" class="paginate_input" value="<%= pageNumber %>" readonly />
     </div>
 
     <script>
@@ -36,8 +36,6 @@
                     const entry = document.createElement('div');
                     entry.innerHTML = formattedData;
                     dataBox.appendChild(entry);
-                    // Update current page number
-                    pageInput.value = data.currentPage;
                 } else if (data.type === "END") {
                     console.log('No more data to receive.');
                     eventSource.close();

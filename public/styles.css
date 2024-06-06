@@ -8,7 +8,7 @@
     color: blueviolet;
     font-size: 40px;
     margin-top: 60px;
-}
+font-weight: bold;}
 
 .bodywrapper{
     text-align: center;
@@ -47,4 +47,102 @@ form {
     padding: 10px; /* Adds padding inside the box */
     border: 1px solid #ccc; /* Adds a border around the box */
     background-color: #f9f9f9; /* Light grey background for visibility */
+}
+
+html{
+    background-color: #DCDCDC;
+    font-family: Poppins, Arial, sans-serif;
+}
+
+
+form#userinfo {
+    display: flex;
+    flex-direction: column;
+}
+
+form#userinfo label {
+    margin-bottom: 5px;
+    color: #333;
+}
+
+form#userinfo input,
+form#userinfo select,
+form#userinfo button {
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+form#userinfo input:focus,
+form#userinfo select:focus,
+form#userinfo button:focus {
+    border-color: #007BFF;
+    outline: none;
+}
+
+form#userinfo button {
+    background-color: #007BFF;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+form#userinfo button:hover {
+    background-color: #0056b3;
+}
+
+.data-box {
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 20px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.data-entry {
+    padding: 5px;
+    border-bottom: 1px solid #ddd;
+}
+
+.data-entry:last-child {
+    border-bottom: none;
+}
+
+button {
+    background-color: #007BFF;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    width: 5%;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+.page-wrapper {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.paginate_input {
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+    text-align: center;
+    width: 30px;
+    height: 10px;
+    margin-top: 10px;
 }

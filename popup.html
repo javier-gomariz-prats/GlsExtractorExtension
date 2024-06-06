@@ -5,14 +5,26 @@
     <title>GLS EXTRACTOR by SendingBay</title>
 </head>
 <body>
+    <h1 class="titulo">GLS DATA EXTRACTOR</h1>
 <div class="bodywrapper">
-    <h1 class="titulo">Extractor de datos de GLS</h1>
+    
     <form id="userinfo" method="POST" action="/login">
         <label for="name">NOMBRE USUARIO:</label>
         <input type="text" id="name" name="name" required minlength="1" size="30" />
         <br>
         <label for="password">CONTRASEÑA:</label>
         <input type="password" id="password" name="password" required minlength="1" size="30" />
+        <br>
+        <label for="pageNumber">PÁGINA:</label>
+        <input type="number" id="pageNumber" name="pageNumber" required min="1" />
+        <br>
+        <label for="recordsPerPage">FILAS POR PÁGINA:</label>
+        <select id="recordsPerPage" name="recordsPerPage" required>
+            <option value="100">100</option>
+            <option value="250">250</option>
+            <option value="500">500</option>
+            <option value="1000">1000</option>
+        </select>
         <br>
         <button type="submit">Iniciar</button>
     </form>

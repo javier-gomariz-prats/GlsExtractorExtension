@@ -39,15 +39,15 @@ app.get('/events', (req, res) => {
 });
 
 app.post('/login', async (req, res) => {
-    const { name, password } = req.body;
-    console.log('Received form data:', name, password);
+    const { name, password, pageNumber, recordsPerPage } = req.body;
+    console.log('Received form data:', name, password, pageNumber, recordsPerPage);
 
     try {
         // Start the data extraction process
-        automateGLSLogin(name, password);
+         automateGLSLogin(name, password, pageNumber, recordsPerPage);
 
-        // Redirect to the result page
-        res.redirect('/result');
+        // Redirect to the result page with the pageNumber
+        res.redirect(`/result?pageNumber=${pageNumber}`);
     } catch (error) {
         console.error('Error:', error);
         res.status(500).send('An error occurred during the login process.');
@@ -55,10 +55,31 @@ app.post('/login', async (req, res) => {
 });
 
 app.get('/result', (req, res) => {
-    res.render('result');
+    const { pageNumber } = req.query;
+    res.render('result', { pageNumber });
 });
 
-async function automateGLSLogin(username, password) {
+async function clickNextPage(page) {
+    try {
+        // Wait for the element with specific class and data-bind attribute to appear
+        const nextPageButton = await page.waitForSelector('a.btn[data-bind*="my.vm.nextPage()"]', { timeout: 60000 });
+        
+        if (!nextPageButton) {
+            throw new Error('Failed to find the next page button.');
+        }
+
+        // Click the next page button
+        await page.evaluate(() => {
+            document.querySelector('a.btn[data-bind*="my.vm.nextPage()"]').click();
+        });
+        
+        console.log('Successfully clicked the next page button.');
+    } catch (error) {
+        console.error('Error:', error.message);
+    }
+}
+
+async function automateGLSLogin(username, password, pageNumber, recordsPerPage) {
     const browser = await puppeteer.launch({
         headless: false,
         defaultViewport: null
@@ -84,10 +105,16 @@ async function automateGLSLogin(username, password) {
 
         await page.waitForSelector('body');
         await waitForSpinnerToDisappear(page);
-
-        const recordsPerPageSuccess = await selectRecordsPerPage(page, 1000);
+        
+        const recordsPerPageSuccess = await selectRecordsPerPage(page, recordsPerPage);
         if (!recordsPerPageSuccess) {
             throw new Error('Failed to set records per page.');
+        }
+
+        // Navigate to the specified page
+        for (let i = 1; i < pageNumber; i++) {
+            await clickNextPage(page);
+            await waitForSpinnerToDisappear(page); // Ensure the page is loaded before clicking next again
         }
 
         const tabWebSuccess = await page.waitForSelector('a[href="#tab_Web"]', { timeout: 60000 });
