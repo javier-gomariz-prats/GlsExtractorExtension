@@ -32,3 +32,26 @@ GLS Client Data Extractor is a web application designed to automatically extract
 1. Clone the repository:
    ```bash
    git clone https://github.com/yourusername/gls-client-data-extractor.git
+   ```
+2. Navigate to the project directory:
+   ```bash
+   cd gls-client-data-extractor
+   ```
+3.Install the dependencies:
+```bash
+npm install
+```
+4.Start the server:
+```bash
+npm start
+```
+
+## Usage
+1. Open your browser and navigate to http://localhost:2024.
+2. Enter your GLS user credentials.
+3. Select the desired options and click "Iniciar".
+4. The app will begin extracting and displaying client UIDs.
+
+   
+   
+
