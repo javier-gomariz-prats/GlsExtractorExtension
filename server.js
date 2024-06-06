@@ -12,7 +12,7 @@ app.use(express.static('public'));
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/public/popup.html');
+    res.sendFile(__dirname + '/popup.html');
 });
 
 // Global variable to hold client connections

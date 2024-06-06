@@ -5,70 +5,64 @@
     <title>GLS EXTRACTOR by SendingBay</title>
 </head>
 <body>
-<div class="bodywrapper">
-    <h1 class="titulo">Extractor de datos de GLS</h1>
-    <div class="data-box" id="data-box">
-        <!-- Data will be dynamically added here -->
+    <div class="bodywrapper">
+        <h1 class="titulo">Extractor de datos de GLS</h1>
+        <div class="data-box" id="data-box">
+            <!-- Data will be dynamically added here -->
+        </div>
+        <button id="copyButton">Copy to Clipboard</button>
+        <form id="userinfo" method="POST" action="/login">
+            <label for="name">NOMBRE USUARIO:</label>
+            <input type="text" id="name" name="name" required minlength="1" size="30" />
+            <br>
+            <label for="password">CONTRASEÑA:</label>
+            <input type="password" id="password" name="password" required minlength="1" size="30" />
+            <br>
+            <button type="submit">Iniciar</button>
+        </form>
+        <br>
     </div>
-    <button id="copyButton">Copy to Clipboard</button>
-    <form id="userinfo" method="POST" action="/login">
-        <label for="name">NOMBRE USUARIO:</label>
-        <input type="text" id="name" name="name" required minlength="1" size="30" />
-        <br>
-        <label for="password">CONTRASEÑA:</label>
-        <input type="password" id="password" name="password" required minlength="1" size="30" />
-        <br>
-        <button type="submit">Iniciar</button>
-    </form>
-    <br>
-</div>
-<script>
-    const eventSource = new EventSource('/events');
-    const dataBox = document.getElementById('data-box');
- 
-    eventSource.onmessage = function(event) {
-        try {
-            const data = JSON.parse(event.data);
-            if (data.type === "heartbeat") {
-                console.log('Heartbeat received');
-            } else if (data.type === "data") {
-                console.log('Received JSON data:', data.content);
-                // Use HTML non-breaking spaces to ensure the spaces are displayed
-                const formattedData = `${data.content.clientCode}&nbsp;&nbsp;&nbsp;&nbsp;${data.content.uid}`;
-                const entry = document.createElement('div');
-                entry.innerHTML = formattedData; // Use innerHTML to render non-breaking spaces
-                dataBox.appendChild(entry);
-            } else if (data.type === "END") {
-                console.log('No more data to receive.');
-                eventSource.close(); // Close the event source if no more data
-            }
-        } catch (error) {
-            console.error('Failed to parse JSON data:', event.data, error);
-        }
-    };
- </script>
- <script>
-    document.getElementById('copyButton').addEventListener('click', function() {
+    <script>
+        const eventSource = new EventSource('/events');
         const dataBox = document.getElementById('data-box');
-        const range = document.createRange();
-        range.selectNode(dataBox);
-        window.getSelection().addRange(range);
-    
-        try {
-            // Execute the copy command
-            const successful = document.execCommand('copy');
-            const msg = successful ? 'successful' : 'unsuccessful';
-            console.log('Copy command was ' + msg);
-            alert('Copied!');
-        } catch (err) {
-            console.log('Oops, unable to copy');
-        }
-        // Remove the selections - clears the blue highlight
-        window.getSelection().removeAllRanges();
-    });
+
+        eventSource.onmessage = function(event) {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === "heartbeat") {
+                    console.log('Heartbeat received');
+                } else if (data.type === "data") {
+                    console.log('Received JSON data:', data.content);
+                    const formattedData = `${data.content.clientCode}&nbsp;&nbsp;&nbsp;&nbsp;${data.content.uid}`;
+                    const entry = document.createElement('div');
+                    entry.innerHTML = formattedData;
+                    dataBox.appendChild(entry);
+                } else if (data.type === "END") {
+                    console.log('No more data to receive.');
+                    eventSource.close();
+                }
+            } catch (error) {
+                console.error('Failed to parse JSON data:', event.data, error);
+            }
+        };
     </script>
-    
- 
- 
+    <script>
+        document.getElementById('copyButton').addEventListener('click', function() {
+            const dataBox = document.getElementById('data-box');
+            const range = document.createRange();
+            range.selectNode(dataBox);
+            window.getSelection().addRange(range);
+
+            try {
+                const successful = document.execCommand('copy');
+                const msg = successful ? 'successful' : 'unsuccessful';
+                console.log('Copy command was ' + msg);
+                alert('Copied!');
+            } catch (err) {
+                console.log('Oops, unable to copy');
+            }
+            window.getSelection().removeAllRanges();
+        });
+    </script>
 </body>
 </html>

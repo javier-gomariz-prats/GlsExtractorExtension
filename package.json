@@ -2,9 +2,9 @@
   "name": "glsextractor",
   "version": "1.0.0",
   "description": "",
-  "main": "popup.js",
+  "main": "popup.html",
   "scripts": {
-    "start": "node popup.js"
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
