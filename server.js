@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 const puppeteer = require('puppeteer');
 
 const app = express();
-const port = 3000;
+const port = 2024;
 
 app.set('view engine', 'ejs');
 app.set('views', __dirname + '/views');
@@ -38,15 +38,13 @@ app.get('/events', (req, res) => {
     });
 });
 
-
-
 app.post('/login', async (req, res) => {
     const { name, password } = req.body;
     console.log('Received form data:', name, password);
 
     try {
         // Start the data extraction process
-        automateGLSLogin(name, password, res);
+        automateGLSLogin(name, password);
 
         // Redirect to the result page
         res.redirect('/result');
@@ -57,10 +55,10 @@ app.post('/login', async (req, res) => {
 });
 
 app.get('/result', (req, res) => {
-    res.render('result', { data: [] });
+    res.render('result');
 });
 
-async function automateGLSLogin(username, password, res) {
+async function automateGLSLogin(username, password) {
     const browser = await puppeteer.launch({
         headless: false,
         defaultViewport: null
@@ -102,8 +100,7 @@ async function automateGLSLogin(username, password, res) {
 
         await waitForSpinnerToDisappear(page);
 
-        const data = await processLogins(page, res);
-        return data;
+        await processLogins(page);
 
     } catch (error) {
         console.error('Error:', error);
@@ -132,7 +129,7 @@ async function selectRecordsPerPage(page, value) {
     }
 }
 
-async function processLogins(page, res) {
+async function processLogins(page) {
     try {
         const totalRecords = await page.evaluate(() => {
             const totalElement = document.querySelector('span[data-bind="text: my.vm.recordsTotal"]');
@@ -156,8 +153,13 @@ async function processLogins(page, res) {
                 console.log(`Extracted data from row ${rowIndex}:`, data);
                 extractedData.push(data);
 
-                // Send data to all connected clients
-                clients.forEach(clientRes => clientRes.write(`data: ${JSON.stringify({ type: 'data', content: data })}\n\n`));
+                // Send data and current page to all connected clients
+                const currentPage = await page.evaluate(() => {
+                    const pageInput = document.querySelector('input.paginate_input');
+                    return pageInput ? parseInt(pageInput.value, 10) : 1;
+                });
+
+                clients.forEach(clientRes => clientRes.write(`data: ${JSON.stringify({ type: 'data', content: data, currentPage })}\n\n`));
             } else {
                 console.error(`Row ${rowIndex} does not exist anymore.`);
                 break;

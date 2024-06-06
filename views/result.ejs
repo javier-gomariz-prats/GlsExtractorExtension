@@ -11,20 +11,19 @@
             <!-- Data will be dynamically added here -->
         </div>
         <button id="copyButton">Copy to Clipboard</button>
-        <form id="userinfo" method="POST" action="/login">
-            <label for="name">NOMBRE USUARIO:</label>
-            <input type="text" id="name" name="name" required minlength="1" size="30" />
-            <br>
-            <label for="password">CONTRASEÑA:</label>
-            <input type="password" id="password" name="password" required minlength="1" size="30" />
-            <br>
-            <button type="submit">Iniciar</button>
-        </form>
         <br>
     </div>
+
+    <!-- Display current page input -->
+    <div>
+        <label for="page">Current Page:</label>
+        <input type="text" id="pageInput" class="paginate_input" value="1" readonly />
+    </div>
+
     <script>
         const eventSource = new EventSource('/events');
         const dataBox = document.getElementById('data-box');
+        const pageInput = document.getElementById('pageInput');
 
         eventSource.onmessage = function(event) {
             try {
@@ -33,10 +32,12 @@
                     console.log('Heartbeat received');
                 } else if (data.type === "data") {
                     console.log('Received JSON data:', data.content);
-                    const formattedData = `${data.content.clientCode}&nbsp;&nbsp;&nbsp;&nbsp;${data.content.uid}`;
+                    const formattedData = `${data.content.uid}&nbsp;&nbsp;&nbsp;&nbsp;${data.content.clientCode}`;
                     const entry = document.createElement('div');
                     entry.innerHTML = formattedData;
                     dataBox.appendChild(entry);
+                    // Update current page number
+                    pageInput.value = data.currentPage;
                 } else if (data.type === "END") {
                     console.log('No more data to receive.');
                     eventSource.close();
@@ -45,10 +46,8 @@
                 console.error('Failed to parse JSON data:', event.data, error);
             }
         };
-    </script>
-    <script>
+
         document.getElementById('copyButton').addEventListener('click', function() {
-            const dataBox = document.getElementById('data-box');
             const range = document.createRange();
             range.selectNode(dataBox);
             window.getSelection().addRange(range);
