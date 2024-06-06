@@ -1,11 +1,11 @@
 # GLS Client Data Extractor by SendingBay
 
-![GitHub repo size](https://img.shields.io/github/repo-size/yourusername/gls-client-data-extractor)
-![GitHub contributors](https://img.shields.io/github/contributors/yourusername/gls-client-data-extractor)
-![GitHub stars](https://img.shields.io/github/stars/yourusername/gls-client-data-extractor?style=social)
-![GitHub forks](https://img.shields.io/github/forks/yourusername/gls-client-data-extractor?style=social)
-![GitHub issues](https://img.shields.io/github/issues/yourusername/gls-client-data-extractor)
-![GitHub license](https://img.shields.io/github/license/yourusername/gls-client-data-extractor)
+![GitHub repo size](https://img.shields.io/github/repo-size/javier-gomariz-prats/gls-client-data-extractor)
+![GitHub contributors](https://img.shields.io/github/contributors/javier-gomariz-prats/gls-client-data-extractor)
+![GitHub stars](https://img.shields.io/github/stars/javier-gomariz-prats/gls-client-data-extractor?style=social)
+![GitHub forks](https://img.shields.io/github/forks/javier-gomariz-prats/gls-client-data-extractor?style=social)
+![GitHub issues](https://img.shields.io/github/issues/javier-gomariz-prats/gls-client-data-extractor)
+![GitHub license](https://img.shields.io/github/license/javier-gomariz-prats/gls-client-data-extractor)
 
 ## Overview
 
