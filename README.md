@@ -1,6 +1,6 @@
 # GLS Client Data Extractor by SendingBay
 
-![GitHub repo size](https://img.shields.io/github/repo-size/javier-gomariz-prats/gls-client-data-extractor)
+![GitHub repo size](https://img.shields.io/github/repo-size/javier-gomariz-prats/GlsExtractorExtension)
 ![GitHub contributors](https://img.shields.io/github/contributors/javier-gomariz-prats/gls-client-data-extractor)
 ![GitHub stars](https://img.shields.io/github/stars/javier-gomariz-prats/gls-client-data-extractor?style=social)
 ![GitHub forks](https://img.shields.io/github/forks/javier-gomariz-prats/gls-client-data-extractor?style=social)
